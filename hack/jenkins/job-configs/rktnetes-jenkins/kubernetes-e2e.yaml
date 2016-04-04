@@ -21,6 +21,7 @@
             {post-env}
 
             export KUBE_GCE_ZONE="us-east1-a"
+            # TODO, this probably isn't needed
             export GCE_SERVICE_ACCOUNT=rktnetes-jenkins-master@coreos-rktnetes-testing.iam.gserviceaccount.com
             timeout -k {kill-timeout}m {timeout}m {runner} && rc=$? || rc=$?
 

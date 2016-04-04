@@ -6,16 +6,15 @@
         - timed: 'H 0 * * *'
     scm:
         - git:
-            url: https://www.github.com/kubernetes/kubernetes
+            url: https://www.github.com/euank/kubernetes
             branches:
                 - master
             browser: githubweb
-            browser-url: https://github.com/kubernetes/kubernetes
+            browser-url: https://github.com/euank/kubernetes
             skip-tag: true
     builders:
         - shell: |
-            echo "We need to alter the gs url it uploads to probably"
-            echo "TODO" && exit 1
+            export KUBERNETES_TEST_RESULT_BUCKET=rktnetes-test-results
             cd hack/jenkins/test-history
             ./gen_history http://localhost/
     publishers:
