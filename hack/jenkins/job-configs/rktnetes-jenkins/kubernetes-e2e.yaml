@@ -1,0 +1,91 @@
+# Common publishers shared by all e2e jobs.
+- publisher:
+    name: e2e-publishers
+    publishers:
+        - junit-publisher
+        - gcs-uploader
+        - log-parser
+
+# Common attributes/actions shared by all e2e jobs.
+- e2e_job_defaults: &e2e_job_defaults
+    name: e2e_job_defaults
+    description: '{description} Test owner: {test-owner}.'
+    logrotate:
+        daysToKeep: 7
+    disabled: '{obj:disable_job}'
+    builders:
+        - shell: |
+            #!/bin/bash
+            {provider-env}
+            {job-env}
+            {post-env}
+
+            export KUBE_GCE_ZONE="us-east1-a"
+            export GCE_SERVICE_ACCOUNT=rktnetes-jenkins-master@coreos-rktnetes-testing.iam.gserviceaccount.com
+            timeout -k {kill-timeout}m {timeout}m {runner} && rc=$? || rc=$?
+
+            if [[ ${{rc}} -ne 0 ]]; then
+                if [[ -x kubernetes/cluster/log-dump.sh && -d _artifacts ]]; then
+                    echo "Dumping logs for any remaining nodes"
+                    ./kubernetes/cluster/log-dump.sh _artifacts
+                fi
+            fi
+            {report-rc}
+    properties:
+        - mail-watcher
+    wrappers:
+        - ansicolor:
+            colormap: xterm
+        - timeout:
+            timeout: '{jenkins-timeout}'
+            fail: true
+        - timestamps
+        - workspace-cleanup
+        - inject:
+            properties-content: |
+                JENKINS_GCS_LOGS_PATH=gs://rktnetes-jenkins/logs
+                KUBE_GCS_RELEASE_BUCKET=rktnetes-kubernetes-release
+# Template for most e2e test jobs.
+- job-template:
+    name: 'kubernetes-e2e-{suffix}'
+    <<: *e2e_job_defaults
+    triggers:
+        - reverse:
+            jobs: '{trigger-job}'
+            result: success
+        - timed: '{cron-string}'
+    publishers:
+      - e2e-publishers:
+          recipients: '{emails}'
+
+- project:
+    name: kubernetes-e2e-gce-master
+    trigger-job: 'kubernetes-build'
+    test-owner: 'Build Cop'
+    provider-env: '{gce-provider-env}'
+    suffix:
+        - 'gce':
+            description: 'Runs all non-slow, non-serial, non-flaky, tests on GCE in parallel.'
+            timeout: 30
+            job-env: |
+                # This list should match the list in kubernetes-pull-build-test-e2e-gce.
+                export GINKGO_TEST_ARGS="--ginkgo.skip=\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]"
+                export GINKGO_PARALLEL="y"
+                export PROJECT="k8s-jkns-e2e-gce"
+        - 'gce-slow':
+            description: 'Runs slow tests on GCE, sequentially.'
+            timeout: 60
+            job-env: |
+                export GINKGO_TEST_ARGS="--ginkgo.focus=\[Slow\] \
+                                         --ginkgo.skip=\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]"
+                export GINKGO_PARALLEL="y"
+                export PROJECT="k8s-jkns-e2e-gce-slow"
+        - 'gce-serial':
+            description: 'Run [Serial], [Disruptive], tests on GCE.'
+            timeout: 300
+            job-env: |
+                export GINKGO_TEST_ARGS="--ginkgo.focus=\[Serial\]|\[Disruptive\] \
+                                         --ginkgo.skip=\[Flaky\]|\[Feature:.+\]"
+                export PROJECT="kubernetes-jkns-e2e-gce-serial"
+    jobs:
+        - 'kubernetes-e2e-{suffix}'

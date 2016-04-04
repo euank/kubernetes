@@ -1,0 +1,14 @@
+- job:
+    name: kubernetes-update-jenkins-jobs
+    description: "Update the CoreOS job configs on a cron; fetched from our fork's rktnetes-testing branch currently"
+    triggers:
+        - timed: 'H/15 * * * *'
+    builders:
+        - shell: |
+            curl -fsS https://raw.githubusercontent.com/coreos/kubernetes/rktnetes-testing/hack/jenkins/update-jobs.sh > update-jobs.sh
+            chmod +x update-jobs.sh
+            ./update-jobs.sh "hack/jenkins/job-configs/rktnetes-jenkins"
+    publishers:
+      - email-ext:
+          recipients: euan.kemp@coreos.com
+
