@@ -40,6 +40,8 @@
         - timestamps
         - inject:
             properties-content: |
+                # TODO, figure out a better way to set path correctly
+                PATH=/home/jenkins/cloudsdk/google-cloud-sdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
                 JENKINS_GCS_LOGS_PATH=gs://rktnetes-jenkins/logs
                 KUBE_GCS_RELEASE_BUCKET=rktnetes-kubernetes-release
 
