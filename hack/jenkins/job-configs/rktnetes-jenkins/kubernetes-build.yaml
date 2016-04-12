@@ -5,7 +5,7 @@
     logrotate:
         numToKeep: 200
     builders:
-        - shell: 'bash <(curl -fsS --retry 3 "https://raw.githubusercontent.com/euank/kubernetes/master/hack/jenkins/upload-started.sh")'
+        - shell: 'JENKINS_BUILD_STARTED=true bash <(curl -fsS --retry 3 "https://raw.githubusercontent.com/euank/kubernetes/master/hack/jenkins/upload-to-gcs.sh")'
         - shell: |
             timeout -k {kill-timeout}m 30m ./hack/jenkins/build.sh && rc=$? || rc=$?
             {report-rc}
@@ -13,6 +13,7 @@
         - mail-watcher
     publishers:
         - claim-build
+        - gcs-uploader
         - log-parser
         - email-ext:
             recipients: euan.kemp+jenkins@coreos.com
