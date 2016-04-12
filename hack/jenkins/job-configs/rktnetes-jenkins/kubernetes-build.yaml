@@ -5,6 +5,27 @@
     logrotate:
         numToKeep: 200
     builders:
+        # Run a merge of all interesting branches prior to building; ensure that they can merge cleanly
+        # Why do this here instead of the SCM plugin?
+        # Frankly, the scm plugin is tricky to work with, especially for merging multiple remotes
+        - shell: |
+            #!/bin/bash
+            set -x
+            set -e
+            COREOS_MERGE_BRANCHES=(test_changes gce_coreos_rkt)
+
+            fail() {
+              1>&2 echo "Error: $1"
+              exit 1
+            }
+
+            # It's okay if the remote already exists
+            git remote add coreos https://github.com/coreos/kubernetes.git || true
+            # TODO, these could be a bash arr to be easier to work with
+            for $branch in ${COREOS_MERGE_BRANCHES[@]}; do
+              git fetch coreos ${branch}:${branch} || fail "Could not fetch ${branch}"
+              git merge $branch || fail "Could not merge ${branch}"
+            done
         - shell: 'JENKINS_BUILD_STARTED=true bash <(curl -fsS --retry 3 "https://raw.githubusercontent.com/euank/kubernetes/master/hack/jenkins/upload-to-gcs.sh")'
         - shell: |
             timeout -k {kill-timeout}m 30m ./hack/jenkins/build.sh && rc=$? || rc=$?
