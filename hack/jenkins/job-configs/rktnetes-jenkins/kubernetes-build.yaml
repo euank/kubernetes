@@ -12,6 +12,8 @@
             #!/bin/bash
             set -x
             set -e
+            git config --global user.email 'euank+jenkins-bot@coreos.com'
+            git config --global user.name 'Jenkins Bot'
             MERGE_BRANCHES=(euank/rktnetes_e2e coreos/gce_coreos_rkt)
             fail() {{
               1>&2 echo "Error: $1"
