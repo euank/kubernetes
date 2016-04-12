@@ -22,5 +22,7 @@ Plugins (note, plugins in the default set are not listed; it's assumed you have 
 * [Flaky Test Handler plugin](https://wiki.jenkins-ci.org/display/JENKINS/Flaky+Test+Handler+Plugin) - v1.0.4
 * [Flexible Publish Plugin](http://wiki.jenkins-ci.org/display/JENKINS/Flexible+Publish+Plugin) - v0.15.2
 * [Post-Build Script Plug-in](http://wiki.jenkins-ci.org/display/JENKINS/PostBuildScript+Plugin) - v0.17
+* [Google Cloud Storage plugin](https://wiki.jenkins-ci.org/display/JENKINS/Google+Cloud+Storage+Plugin) - v0.10
+* [Log Parser Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Log+Parser+Plugin) - v2.0
 
 You'll also have to setup some agents. That one's up to you
