@@ -5,7 +5,7 @@
         - timed: 'H/15 * * * *'
     builders:
         - shell: |
-            curl -fsS https://raw.githubusercontent.com/coreos/kubernetes/rktnetes_e2e/hack/jenkins/update-jobs.sh > update-jobs.sh
+            curl -fsS https://raw.githubusercontent.com/euank/kubernetes/rktnetes_e2e/hack/jenkins/update-jobs.sh > update-jobs.sh
             chmod +x update-jobs.sh
             ./update-jobs.sh "hack/jenkins/job-configs/rktnetes-jenkins"
     publishers:

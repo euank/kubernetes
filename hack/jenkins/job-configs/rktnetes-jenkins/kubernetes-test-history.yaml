@@ -6,11 +6,11 @@
         - timed: 'H 0 * * *'
     scm:
         - git:
-            url: https://www.github.com/coreos/kubernetes
+            url: https://www.github.com/euank/kubernetes
             branches:
                 - rktnetes_e2e
             browser: githubweb
-            browser-url: https://github.com/coreos/kubernetes
+            browser-url: https://github.com/kubernetes/kubernetes
             skip-tag: true
     builders:
         - shell: |
