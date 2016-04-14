@@ -24,6 +24,7 @@
               branch=$(echo $ref | awk -F/ '{{print $2}}')
               # It's okay if the remote already exists
               git remote add $remote https://github.com/${{remote}}/kubernetes.git || true
+              git branch -D ${{ref}}
               git fetch ${{remote}} ${{branch}}:${{ref}} || fail "Could not fetch ${{ref}}"
               git merge -m "Auto-merging $ref" $ref || fail "Could not merge ${{ref}}"
             done
