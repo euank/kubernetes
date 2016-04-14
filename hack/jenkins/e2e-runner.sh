@@ -229,10 +229,10 @@ fi
 # on which your jenkins jobs are running. Then do:
 #
 # # SSH from your computer into the instance.
-# $ gcloud compute ssh --project="<prj>" ssh --zone="<zone>" <instance>
+# $ gcloud compute --project="<prj>" ssh --zone="<zone>" <instance>
 #
 # # Generate a key by ssh'ing from the instance into itself, then exit.
-# $ gcloud compute ssh --project="<prj>" ssh --zone="<zone>" <instance>
+# $ gcloud compute --project="<prj>" ssh --zone="<zone>" <instance>
 # $ ^D
 #
 # # Copy the keys to the desired location (e.g. /var/lib/jenkins/gce_keys/).
