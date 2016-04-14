@@ -38,9 +38,8 @@ import (
 )
 
 const (
-	KubenetPluginName = "kubenet"
-	BridgeName        = "cbr0"
-	DefaultCNIDir     = "/opt/cni/bin"
+	BridgeName    = "cbr0"
+	DefaultCNIDir = "/opt/cni/bin"
 )
 
 type kubenetNetworkPlugin struct {
