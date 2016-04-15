@@ -75,6 +75,7 @@
                 export KUBE_GCE_MASTER_PROJECT="coreos-cloud"
                 export KUBE_OS_DISTRIBUTION="coreos"
                 export OS_DISTRIBUTION="coreos"
+                export KUBE_SSH_USER="core"
                 export KUBE_CONTAINER_RUNTIME=rkt
                 export KUBE_ENABLE_NODE_LOGGING=false
                 export KUBE_ENABLE_CLUSTER_MONITORING=none
@@ -95,6 +96,7 @@
                 export KUBE_GCE_MASTER_PROJECT="coreos-cloud"
                 export KUBE_OS_DISTRIBUTION="coreos"
                 export OS_DISTRIBUTION="coreos"
+                export KUBE_SSH_USER="core"
                 export KUBE_CONTAINER_RUNTIME=rkt
                 export KUBE_ENABLE_NODE_LOGGING=false
                 export KUBE_ENABLE_CLUSTER_MONITORING=none
