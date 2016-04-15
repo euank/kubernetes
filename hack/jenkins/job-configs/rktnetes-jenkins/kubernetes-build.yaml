@@ -31,7 +31,7 @@
         - shell: 'JENKINS_BUILD_STARTED=true bash <(curl -fsS --retry 3 "https://raw.githubusercontent.com/euank/kubernetes/rktnetes_e2e/hack/jenkins/upload-to-gcs.sh")'
         - shell: |
             export BUILD_PYTHON_IMAGE=true
-            timeout -k {kill-timeout}m 30m ./hack/jenkins/build.sh && rc=$? || rc=$?
+            timeout -k 60m 60m ./hack/jenkins/build.sh && rc=$? || rc=$?
             {report-rc}
     properties:
         - mail-watcher

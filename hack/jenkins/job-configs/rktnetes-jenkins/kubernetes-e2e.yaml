@@ -80,7 +80,7 @@
                 export KUBE_ENABLE_CLUSTER_MONITORING=none
 
                 export KUBE_GCE_MASTER_IMAGE="coreos-alpha-1010-1-0-v20160407"
-                export KUBE_RKT_VERSION=rkt-1.3.0
+                export KUBE_RKT_VERSION=rkt-1.3.0-with-docker2aci
 
                 export KUBE_GCE_ZONE="us-east1-d"
             runner: 'curl -fsS --retry 3  "https://raw.githubusercontent.com/euank/kubernetes/rktnetes_e2e/hack/jenkins/e2e-runner.sh" | bash -'
@@ -100,7 +100,7 @@
                 export KUBE_ENABLE_CLUSTER_MONITORING=none
 
                 export KUBE_GCE_MASTER_IMAGE="coreos-alpha-1010-1-0-v20160407"
-                export KUBE_RKT_VERSION=rkt-1.3.0
+                export KUBE_RKT_VERSION=rkt-1.3.0-with-docker2aci
 
                 export JENKINS_GCS_LOGS_PATH=gs://rktnetes-jenkins/logs
                 export KUBE_GCE_ZONE="us-east1-d"
