@@ -52,7 +52,7 @@
             branches:
                 - '{branch}'
             browser: githubweb
-            browser-url: https://github.com/kuberentes/kubernetes
+            browser-url: https://github.com/kubernetes/kubernetes
             wipe-workspace: false
             skip-tag: true
     triggers:
