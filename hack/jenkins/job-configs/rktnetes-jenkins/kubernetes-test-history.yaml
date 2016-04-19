@@ -1,6 +1,7 @@
 - job:
     name: kubernetes-test-summary
-    description: 'Create a daily test summary and upload to GCS. Test owner: spxtr.'
+    description: 'Create a daily test summary and upload to GCS.'
+    node: 'on-master'
     triggers:
         # Run every night at midnight at a random minute.
         - timed: 'H 0 * * *'
@@ -10,13 +11,13 @@
             branches:
                 - rktnetes_e2e
             browser: githubweb
-            browser-url: https://github.com/kubernetes/kubernetes
+            browser-url: https://github.com/euank/kubernetes
             skip-tag: true
     builders:
         - shell: |
             export KUBERNETES_TEST_RESULT_BUCKET=rktnetes-test-results
             cd hack/jenkins/test-history
-            ./gen_history http://localhost/
+            ./gen_history http://localhost:8080/
     publishers:
         - email-ext:
-            recipients: euan.kemp@coreos.com
+            recipients: euan.kemp+jenkins@coreos.com
