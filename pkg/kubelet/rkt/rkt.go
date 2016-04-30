@@ -44,6 +44,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
+	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -122,6 +123,7 @@ type Runtime struct {
 
 	containerRefManager *kubecontainer.RefManager
 	runtimeHelper       kubecontainer.RuntimeHelper
+	networkPlugin       network.NetworkPlugin
 	recorder            record.EventRecorder
 	livenessManager     proberesults.Manager
 	volumeGetter        volumeGetter
@@ -131,7 +133,8 @@ type Runtime struct {
 	os                  kubecontainer.OSInterface
 
 	// used for a systemd Exec, which requires the full path.
-	touchPath string
+	touchPath   string
+	nsenterPath string
 
 	versions versions
 }
@@ -150,6 +153,7 @@ func New(
 	apiEndpoint string,
 	config *Config,
 	runtimeHelper kubecontainer.RuntimeHelper,
+	networkPlugin network.NetworkPlugin,
 	recorder record.EventRecorder,
 	containerRefManager *kubecontainer.RefManager,
 	livenessManager proberesults.Manager,
@@ -187,6 +191,11 @@ func New(
 		return nil, fmt.Errorf("cannot find touch binary: %v", err)
 	}
 
+	nsenterPath, err := execer.LookPath("nsenter")
+	if err != nil {
+		return nil, fmt.Errorf("cannot find nsenter binary: %v", err)
+	}
+
 	rkt := &Runtime{
 		systemd:             systemd,
 		apisvcConn:          apisvcConn,
@@ -195,12 +204,14 @@ func New(
 		dockerKeyring:       credentialprovider.NewDockerKeyring(),
 		containerRefManager: containerRefManager,
 		runtimeHelper:       runtimeHelper,
+		networkPlugin:       networkPlugin,
 		recorder:            recorder,
 		livenessManager:     livenessManager,
 		volumeGetter:        volumeGetter,
 		execer:              execer,
 		os:                  os,
 		touchPath:           touchPath,
+		nsenterPath:         nsenterPath,
 	}
 
 	rkt.config, err = rkt.getConfig(rkt.config)
@@ -829,18 +840,15 @@ func (r *Runtime) generateRunCommand(pod *api.Pod, uuid string) (string, error) 
 
 	var hostname string
 	var err error
+	runPrepared = append(runPrepared, "--net=host")
 	// Setup network configuration.
 	if kubecontainer.IsHostNetworkPod(pod) {
-		runPrepared = append(runPrepared, "--net=host")
-
 		// TODO(yifan): Let runtimeHelper.GeneratePodHostNameAndDomain() to handle this.
 		hostname, err = os.Hostname()
 		if err != nil {
 			return "", err
 		}
 	} else {
-		runPrepared = append(runPrepared, fmt.Sprintf("--net=%s", kubenet.KubenetPluginName))
-
 		// Setup DNS.
 		dnsServers, dnsSearches, err := r.runtimeHelper.GetClusterDNS(pod)
 		if err != nil {
@@ -858,6 +866,17 @@ func (r *Runtime) generateRunCommand(pod *api.Pod, uuid string) (string, error) 
 
 		// TODO(yifan): host domain is not being used.
 		hostname, _ = r.runtimeHelper.GeneratePodHostNameAndDomain(pod)
+
+		// Drop the `rkt run` into the network namespace we created.  Note, this is
+		// a bit of a hack, it would probably be better to use rkt or systemd if
+		// ever at all possible, see discussion here:
+		// https://github.com/coreos/rkt/pull/2525#issuecomment-215455210 Note,
+		// despite the continuous mention of 'ip netns exec' there, the ip command
+		// has a bug that breaks rkt (see
+		// https://bugzilla.redhat.com/show_bug.cgi?id=882047), or at least it does
+		// on my system.
+		nsenterExec := []string{r.nsenterPath, "--net=" + r.getNetNS(kubecontainer.ContainerID{ID: string(pod.UID)}), "--"}
+		runPrepared = append(nsenterExec, runPrepared...)
 	}
 
 	runPrepared = append(runPrepared, fmt.Sprintf("--hostname=%s", hostname))
@@ -984,11 +1003,33 @@ func (r *Runtime) generateEvents(runtimePod *kubecontainer.Pod, reason string, f
 	return
 }
 
+func podNsName(podID types.UID) string {
+	return "k8-rkt-" + string(podID)
+}
+
+func (r *Runtime) createNamespace(pod *api.Pod) error {
+	_, err := r.execer.Command("ip", "netns", "add", podNsName(pod.UID)).CombinedOutput()
+	return err
+}
+
 // RunPod first creates the unit file for a pod, and then
 // starts the unit over d-bus.
 func (r *Runtime) RunPod(pod *api.Pod, pullSecrets []api.Secret) error {
 	glog.V(4).Infof("Rkt starts to run pod: name %q.", format.Pod(pod))
 
+	// We could setup networking either before or after doing a prepare.
+	// It would be better to do it as late as possible I think, but since we want
+	// to inject in an IP (and a prepared-pod isn't mutable enough that we can do
+	// so), for now we have to do networking magic prior to preparing, and
+	// prepare with the IP known
+	err := r.createNamespace(pod)
+	if err != nil {
+		return err
+	}
+	err = r.networkPlugin.SetUpPod(pod.Namespace, pod.Name, kubecontainer.ContainerID{ID: string(pod.UID)})
+	if err != nil {
+		return err
+	}
 	name, runtimePod, prepareErr := r.preparePod(pod, pullSecrets)
 
 	// Set container references and generate events.
@@ -1017,7 +1058,7 @@ func (r *Runtime) RunPod(pod *api.Pod, pullSecrets []api.Secret) error {
 	// RestartUnit has the same effect as StartUnit if the unit is not running, besides it can restart
 	// a unit if the unit file is changed and reloaded.
 	reschan := make(chan string)
-	_, err := r.systemd.RestartUnit(name, "replace", reschan)
+	_, err = r.systemd.RestartUnit(name, "replace", reschan)
 	if err != nil {
 		r.generateEvents(runtimePod, "Failed", err)
 		return err
@@ -1254,6 +1295,8 @@ func (r *Runtime) KillPod(pod *api.Pod, runningPod kubecontainer.Pod) error {
 		return err
 	}
 
+	// TODO network teardown, maybe in other places too?
+
 	return nil
 }
 
@@ -1345,6 +1388,7 @@ func (r *Runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 			}
 		}
 		if err = r.RunPod(pod, pullSecrets); err != nil {
+			glog.Errorf("Pod %q could not be run: %v", format.Pod(pod), err)
 			return
 		}
 	}
@@ -1521,12 +1565,7 @@ func (r *Runtime) PortForward(pod *kubecontainer.Pod, port uint16, stream io.Rea
 
 	args := []string{"-t", fmt.Sprintf("%d", listResp.Pods[0].Pid), "-n", socatPath, "-", fmt.Sprintf("TCP4:localhost:%d", port)}
 
-	nsenterPath, lookupErr := exec.LookPath("nsenter")
-	if lookupErr != nil {
-		return fmt.Errorf("unable to do port forwarding: nsenter not found.")
-	}
-
-	command := exec.Command(nsenterPath, args...)
+	command := exec.Command(r.nsenterPath, args...)
 	command.Stdout = stream
 
 	// If we use Stdin, command.Run() won't return until the goroutine that's copying
@@ -1687,6 +1726,7 @@ func (r *Runtime) GetPodStatus(uid types.UID, name, namespace string) (*kubecont
 
 	if latestPod != nil {
 		// Try to fill the IP info.
+		// TODO pull this from the namespace if this doesn't work
 		for _, n := range latestPod.Networks {
 			if n.Name == kubenet.KubenetPluginName {
 				podStatus.IP = n.Ipv4
@@ -1705,4 +1745,18 @@ func (r *Runtime) ImageStats() (*kubecontainer.ImageStats, error) {
 // GetConfig returns the config for the rkt runtime.
 func (r *Runtime) GetConfig() *Config {
 	return r.config
+}
+
+func (r *Runtime) GetNetNS(podid kubecontainer.ContainerID) (string, error) {
+	// This is a slight hack, kubenet shouldn't be asking us about a container id
+	// but a pod id. This is because it knows too much about the infra container.
+	// We pretend the pod.UID is an infra container ID.
+	// This deception is only possible because we played the same trick in
+	// `networkPlugin.SetUpPod` elsewhere.
+	return r.getNetNS(podid), nil
+}
+
+// convenience helper so it can be used without ignoring the err
+func (r *Runtime) getNetNS(podid kubecontainer.ContainerID) string {
+	return "/var/run/netns/" + podNsName(types.UID(podid.ID))
 }

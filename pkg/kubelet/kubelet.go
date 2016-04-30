@@ -422,6 +422,7 @@ func NewMainKubelet(
 			rktAPIEndpoint,
 			conf,
 			klet,
+			klet.networkPlugin,
 			recorder,
 			containerRefManager,
 			klet.livenessManager,
