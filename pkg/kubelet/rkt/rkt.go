@@ -1424,6 +1424,11 @@ func (r *Runtime) SyncPod(pod *api.Pod, podStatus api.PodStatus, internalPodStat
 	return
 }
 
+// GetNetNS returns the network namespace path for the given container
+func (r *Runtime) GetNetNS(containerID kubecontainer.ContainerID) (string, error) {
+       return "", nil
+}
+
 // GarbageCollect collects the pods/containers.
 // TODO(yifan): Enforce the gc policy, also, it would be better if we can
 // just GC kubernetes pods.

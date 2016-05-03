@@ -30,7 +30,6 @@ import (
 	"github.com/appc/cni/libcni"
 	"github.com/golang/glog"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/util/bandwidth"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
@@ -220,11 +219,7 @@ func (plugin *kubenetNetworkPlugin) SetUpPod(namespace string, name string, id k
 		return fmt.Errorf("Kubenet needs a PodCIDR to set up pods")
 	}
 
-	runtime, ok := plugin.host.GetRuntime().(*dockertools.DockerManager)
-	if !ok {
-		return fmt.Errorf("Kubenet execution called on non-docker runtime")
-	}
-	netnsPath, err := runtime.GetNetNS(id)
+	netnsPath, err := plugin.host.GetRuntime().GetNetNS(id)
 	if err != nil {
 		return fmt.Errorf("Kubenet failed to retrieve network namespace path: %v", err)
 	}
@@ -262,11 +257,7 @@ func (plugin *kubenetNetworkPlugin) TearDownPod(namespace string, name string, i
 		return fmt.Errorf("Kubenet needs a PodCIDR to tear down pods")
 	}
 
-	runtime, ok := plugin.host.GetRuntime().(*dockertools.DockerManager)
-	if !ok {
-		return fmt.Errorf("Kubenet execution called on non-docker runtime")
-	}
-	netnsPath, err := runtime.GetNetNS(id)
+	netnsPath, err := plugin.host.GetRuntime().GetNetNS(id)
 	if err != nil {
 		return err
 	}
