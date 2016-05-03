@@ -1086,8 +1086,9 @@ func TestGenerateRunCommand(t *testing.T) {
 	}
 
 	tests := []struct {
-		pod  *api.Pod
-		uuid string
+		pod       *api.Pod
+		uuid      string
+		netnsName string
 
 		dnsServers  []string
 		dnsSearches []string
@@ -1105,6 +1106,7 @@ func TestGenerateRunCommand(t *testing.T) {
 				Spec: api.PodSpec{},
 			},
 			"rkt-uuid-foo",
+			"default",
 			[]string{},
 			[]string{},
 			"",
@@ -1119,11 +1121,12 @@ func TestGenerateRunCommand(t *testing.T) {
 				},
 			},
 			"rkt-uuid-foo",
+			"default",
 			[]string{},
 			[]string{},
 			"pod-hostname-foo",
 			nil,
-			"/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=rkt.kubernetes.io --hostname=pod-hostname-foo rkt-uuid-foo",
+			" --net=\"/var/run/netns/default\" -- /bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --hostname=pod-hostname-foo rkt-uuid-foo",
 		},
 		// Case #2, returns no dns, with host-net.
 		{
@@ -1138,6 +1141,7 @@ func TestGenerateRunCommand(t *testing.T) {
 				},
 			},
 			"rkt-uuid-foo",
+			"",
 			[]string{},
 			[]string{},
 			"",
@@ -1157,11 +1161,12 @@ func TestGenerateRunCommand(t *testing.T) {
 				},
 			},
 			"rkt-uuid-foo",
+			"default",
 			[]string{"127.0.0.1"},
 			[]string{"."},
 			"pod-hostname-foo",
 			nil,
-			"/bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=rkt.kubernetes.io --dns=127.0.0.1 --dns-search=. --dns-opt=ndots:5 --hostname=pod-hostname-foo rkt-uuid-foo",
+			" --net=\"/var/run/netns/default\" -- /bin/rkt/rkt --insecure-options=image,ondisk --local-config=/var/rkt/local/data --dir=/var/data run-prepared --net=host --dns=127.0.0.1 --dns-search=. --dns-opt=ndots:5 --hostname=pod-hostname-foo rkt-uuid-foo",
 		},
 		// Case #4, returns no dns, dns searches, with host-network.
 		{
@@ -1176,6 +1181,7 @@ func TestGenerateRunCommand(t *testing.T) {
 				},
 			},
 			"rkt-uuid-foo",
+			"",
 			[]string{"127.0.0.1"},
 			[]string{"."},
 			"pod-hostname-foo",
@@ -1198,7 +1204,7 @@ func TestGenerateRunCommand(t *testing.T) {
 		testCaseHint := fmt.Sprintf("test case #%d", i)
 		rkt.runtimeHelper = &fakeRuntimeHelper{tt.dnsServers, tt.dnsSearches, tt.hostName, "", tt.err}
 
-		result, err := rkt.generateRunCommand(tt.pod, tt.uuid)
+		result, err := rkt.generateRunCommand(tt.pod, tt.uuid, tt.netnsName)
 		assert.Equal(t, tt.err, err, testCaseHint)
 		assert.Equal(t, tt.expect, result, testCaseHint)
 	}
