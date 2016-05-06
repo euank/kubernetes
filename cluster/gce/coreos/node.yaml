@@ -1,7 +1,13 @@
 #cloud-config
 
 coreos:
+  update:
+    reboot-strategy: off
   units:
+    - name: update-engine.service
+      command: stop
+    - name: locksmithd.service
+      command: stop
     - name: kube-env.service
       command: start
       content: |
@@ -20,6 +26,20 @@ coreos:
         ExecStartPre=/usr/bin/mv /etc/kube-env.yaml /etc/kube-env
         ExecStart=/usr/bin/sed -i "s/: '/=/;s/'$//" /etc/kube-env
 
+    - name: kubernetes-install-cni.service
+      command: start
+      content: |
+          [Unit]
+          Description=Download cni
+          Requires=network-online.target
+          After=network-online.target
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStartPre=/usr/bin/mkdir -p /opt/cni
+          ExecStartPre=/usr/bin/curl --fail --silent --show-error --location --create-dirs --output /opt/downloads/cni.tar.gz https://storage.googleapis.com/kubernetes-release/network-plugins/cni-42c4cb842dad606a84e93aad5a4484ded48e3046.tar.gz
+          ExecStart=/usr/bin/tar xf /opt/downloads/cni.tar.gz -C /opt/cni/
+
     - name: kubernetes-install-rkt.service
       command: start
       content: |
@@ -27,18 +47,28 @@ coreos:
         Description=Fetch rkt
         Documentation=http://github.com/coreos/rkt
         Requires=network-online.target
-        After=network-online.target
+        After=network-online.target kubernetes-install-cni.service
         Requires=kube-env.service
         After=kube-env.service
         [Service]
         Type=oneshot
         RemainAfterExit=yes
         EnvironmentFile=/etc/kube-env
-        ExecStartPre=/usr/bin/mkdir -p /etc/rkt
-        ExecStartPre=/usr/bin/mkdir -p /opt/downloads
-        ExecStartPre=/usr/bin/curl --fail --silent --show-error --location --create-dirs --output \
-        /opt/downloads/rkt.tar.gz https://github.com/coreos/rkt/releases/download/v${RKT_VERSION}/rkt-v${RKT_VERSION}.tar.gz
-        ExecStart=/usr/bin/tar xf /opt/downloads/rkt.tar.gz -C /opt --overwrite
+        ExecStartPre=/usr/bin/mkdir -p /etc/rkt /opt/downloads /opt/rkt/
+        ExecStartPre=/usr/bin/curl --fail --silent --location --create-dirs --output /opt/downloads/rkt.tar.gz https://github.com/coreos/rkt/releases/download/v${RKT_VERSION}/rkt-v${RKT_VERSION}.tar.gz
+        ExecStart=/usr/bin/tar --strip-components=1 -xf /opt/downloads/rkt.tar.gz -C /opt/rkt/ --overwrite
+
+    - name: rkt-api-service.service
+      command: start
+      content: |
+        [Unit]
+        Description=Start rkt API service as Daemon
+        Requires=kubernetes-install-rkt.service
+        After=kubernetes-install-rkt.service
+        [Service]
+        ExecStart=/opt/rkt/rkt api-service
+        Restart=always
+        RestartSec=10
 
     - name: kubernetes-download-manifests.service
       command: start
@@ -103,13 +133,15 @@ coreos:
         --cloud-provider=gce \
         --config=/etc/kubernetes/manifests \
         --allow-privileged=true \
-        --v=2 \
+        --v=4 \
         --cluster-dns=${DNS_SERVER_IP} \
         --cluster-domain=${DNS_DOMAIN} \
         --logtostderr=true \
         --container-runtime=${KUBERNETES_CONTAINER_RUNTIME} \
-        --rkt-path=/opt/rkt-v${RKT_VERSON}/rkt \
-        --configure-cbr0=${KUBERNETES_CONFIGURE_CBR0}
+        --rkt-path=/opt/rkt/rkt \
+        --rkt-stage1-image=/opt/rkt/stage1-coreos.aci \
+        --configure-cbr0=${KUBERNETES_CONFIGURE_CBR0} \
+        --network-plugin=kubenet
         Restart=always
         RestartSec=10
         KillMode=process
@@ -131,7 +163,32 @@ coreos:
         Restart=always
         RestartSec=10
 
+    - name: kubernetes-configure-node.service
+      command: start
+      content: |
+        [Unit]
+        Description=Configure Node For Kubernetes service
+        Requires=kubernetes-install-node.service
+        After=kubernetes-install-node.service
+        Requires=kubernetes-install-rkt.service
+        After=kubernetes-install-rkt.service
+        Requires=rkt-api-service.service
+        After=rkt-api-service.service
+        Requires=kubernetes-download-manifests.service
+        After=kubernetes-download-manifests.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        EnvironmentFile=/etc/kube-env
+        ExecStartPre=/usr/bin/curl --fail --silent --show-error \
+        -H "X-Google-Metadata-Request: True" \
+        -o /run/configure-node.sh \
+        http://metadata.google.internal/computeMetadata/v1/instance/attributes/configure-node
+        ExecStartPre=/usr/bin/chmod 0755 /run/configure-node.sh
+        ExecStart=/run/configure-node.sh
+
     - name: docker.service
+      command: stop
       drop-ins:
         - name: 50-docker-opts.conf
           content: |
@@ -145,24 +202,3 @@ coreos:
             RestartSec=2s
             StartLimitInterval=0
 
-    - name: kubernetes-configure-node.service
-      command: start
-      content: |
-        [Unit]
-        Description=Configure Node For Kubernetes service
-        Requires=kubernetes-install-node.service
-        After=kubernetes-install-node.service
-        Requires=kubernetes-install-rkt.service
-        After=kubernetes-install-rkt.service
-        Requires=kubernetes-download-manifests.service
-        After=kubernetes-download-manifests.service
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        EnvironmentFile=/etc/kube-env
-        ExecStartPre=/usr/bin/curl --fail --silent --show-error \
-        -H "X-Google-Metadata-Request: True" \
-        -o /run/configure-node.sh \
-        http://metadata.google.internal/computeMetadata/v1/instance/attributes/configure-node
-        ExecStartPre=/usr/bin/chmod 0755 /run/configure-node.sh
-        ExecStart=/run/configure-node.sh

@@ -55,15 +55,23 @@ endif
 	cd ${TEMP_DIR} && sed -i.back "s|BASEIMAGE|${BASEIMAGE}|g" Dockerfile
 	rm ${TEMP_DIR}/*.back
 
+	# Make scripts executable before they are copied into the Docker image. If we make them executable later, in another layer
+	# they'll take up twice the space because the new executable binary differs from the old one, but everything is cached in layers.
+	cd ${TEMP_DIR} && chmod a+rx \
+        hyperkube \
+        safe_format_and_mount \
+        setup-files.sh \
+        make-ca-cert.sh
+
 ifeq ($(ARCH),amd64)
 	# When building "normally" for amd64, remove the whole line, it has no part in the amd64 image
-	cd ${TEMP_DIR} && sed -i ""  "/CROSS_BUILD_/d" Dockerfile
+	cd ${TEMP_DIR} && sed -i "/CROSS_BUILD_/d" Dockerfile
 else
 	# When cross-building, only the placeholder "CROSS_BUILD_" should be removed
 	# Register /usr/bin/qemu-ARCH-static as the handler for ARM binaries in the kernel
 	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 	curl -sSL --retry 5 https://github.com/multiarch/qemu-user-static/releases/download/v2.5.0/x86_64_qemu-${QEMUARCH}-static.tar.xz | tar -xJ -C ${TEMP_DIR}
-	cd ${TEMP_DIR} && sed -i "" "s/CROSS_BUILD_//g" Dockerfile
+	cd ${TEMP_DIR} && sed -i "s/CROSS_BUILD_//g" Dockerfile
 endif
 
 	docker build -t ${REGISTRY}/hyperkube-${ARCH}:${VERSION} ${TEMP_DIR}
