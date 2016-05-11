@@ -433,7 +433,6 @@ func NewMainKubelet(
 			containerRefManager,
 			klet.podManager,
 			klet.livenessManager,
-			klet.volumeManager,
 			klet.httpClient,
 			klet.networkPlugin,
 			klet.hairpinMode == componentconfig.HairpinVeth,
