@@ -6,11 +6,11 @@ coreos:
       command: start
       content: |
         [Unit]
-        After=opt-kubernetes.mount docker.socket
+        After=opt-kubernetes.mount docker.socket rkt-api-service.service
         ConditionFileIsExecutable=/opt/kubernetes/bin/kubelet
         Description=Kubernetes Kubelet
         Documentation=https://github.com/kubernetes/kubernetes
-        Requires=opt-kubernetes.mount docker.socket
+        Requires=opt-kubernetes.mount docker.socket rkt-api-service.service
 
         [Service]
         ExecStart=/opt/kubernetes/bin/kubelet \
@@ -18,6 +18,7 @@ coreos:
         --hostname-override=${NODE_IPS[$i]} \
         --cluster-domain=cluster.local \
         --api-servers=http://${MASTER_IP}:8080 \
+        --container-runtime=${CONTAINER_RUNTIME} \
         --tls-cert-file=/opt/kubernetes/certs/${NODE_NAMES[$i]}-node.pem \ \
         --tls-private-key-file=/opt/kubernetes/certs/${NODE_NAMES[$i]}-node-key.pem \
         $( [[ "$ENABLE_CLUSTER_DNS" == "true" ]] && echo "--cluster-dns=${DNS_SERVER_IP}" ) \
