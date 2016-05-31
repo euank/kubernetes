@@ -356,7 +356,7 @@ function start_kubelet {
         --v=${LOG_LEVEL} \
         --chaos-chance="${CHAOS_CHANCE}" \
         --configure-cbr0=true \
-        --pod-cidr="10.0.0.0/24" \
+        --pod-cidr="10.1.0.1/24" \
         --container-runtime="${CONTAINER_RUNTIME}" \
         --rkt-path="${RKT_PATH}" \
         --rkt-stage1-image="${RKT_STAGE1_IMAGE}" \
