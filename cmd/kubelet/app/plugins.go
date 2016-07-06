@@ -87,7 +87,9 @@ func ProbeVolumePlugins(pluginDir string) []volume.VolumePlugin {
 
 // ProbeNetworkPlugins collects all compiled-in plugins
 func ProbeNetworkPlugins(pluginDir string) []network.NetworkPlugin {
-	allPlugins := []network.NetworkPlugin{}
+	allPlugins := []network.NetworkPlugin{
+		&network.NoopNetworkPlugin{},
+	}
 
 	// for each existing plugin, add to the list
 	allPlugins = append(allPlugins, exec.ProbeNetworkPlugins(pluginDir)...)
