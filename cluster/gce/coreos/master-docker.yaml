@@ -6,6 +6,19 @@ coreos:
   units:
     - name: locksmithd.service
       mask: true
+    - name: 10-google-internal.network
+      runtime: true
+      content: |
+        [Match]
+        Name=en*
+
+        [Network]
+        DHCP=yes
+        Domains=google.internal
+
+        [DHCP]
+        UseMTU=true
+        UseDomains=true
     - name: kube-env.service
       command: start
       content: |
