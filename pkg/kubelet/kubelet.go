@@ -247,6 +247,9 @@ func NewMainKubelet(
 		return nil, fmt.Errorf("invalid sync frequency %d", resyncInterval)
 	}
 
+	panic(syntax error)
+
+
 	serviceStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	if kubeClient != nil {
 		// TODO: cache.NewListWatchFromClient is limited as it takes a client implementation rather
