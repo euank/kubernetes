@@ -1,7 +1,7 @@
 {
 	"ImportPath": "k8s.io/kubernetes",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v74",
+	"GodepVersion": "v63",
 	"Packages": [
 		"github.com/ugorji/go/codec/codecgen",
 		"github.com/onsi/ginkgo/ginkgo",
@@ -634,8 +634,8 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/rkt/api/v1alpha",
-			"Comment": "v1.6.0",
-			"Rev": "14437382a98e5ebeb6cafb57cff445370e3f7d56"
+			"Comment": "v1.11.0",
+			"Rev": "ef647be0bdf35b3d7eddc8a86e1d476b94a062c4"
 		},
 		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
@@ -2192,35 +2192,39 @@
 		},
 		{
 			"ImportPath": "google.golang.org/grpc",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/codes",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/credentials",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/grpclog",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/internal",
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/metadata",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/naming",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/peer",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "google.golang.org/grpc/transport",
-			"Rev": "933601d8cd6418a8a891bd9075a7161b0a67badb"
+			"Rev": "0f80f5b995e8332b1bdaac1bc37af0482c60147c"
 		},
 		{
 			"ImportPath": "gopkg.in/gcfg.v1",

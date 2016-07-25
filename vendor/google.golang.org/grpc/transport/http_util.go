@@ -62,8 +62,8 @@ const (
 )
 
 var (
-	clientPreface      = []byte(http2.ClientPreface)
-	http2RSTErrConvTab = map[http2.ErrCode]codes.Code{
+	clientPreface   = []byte(http2.ClientPreface)
+	http2ErrConvTab = map[http2.ErrCode]codes.Code{
 		http2.ErrCodeNo:                 codes.Internal,
 		http2.ErrCodeProtocol:           codes.Internal,
 		http2.ErrCodeInternal:           codes.Internal,
@@ -76,6 +76,7 @@ var (
 		http2.ErrCodeConnect:            codes.Internal,
 		http2.ErrCodeEnhanceYourCalm:    codes.ResourceExhausted,
 		http2.ErrCodeInadequateSecurity: codes.PermissionDenied,
+		http2.ErrCodeHTTP11Required:     codes.FailedPrecondition,
 	}
 	statusCodeConvTab = map[codes.Code]http2.ErrCode{
 		codes.Internal:          http2.ErrCodeInternal,
@@ -120,7 +121,7 @@ type headerFrame interface {
 // reserved by gRPC protocol. Any other headers are classified as the
 // user-specified metadata.
 func isReservedHeader(hdr string) bool {
-	if hdr[0] == ':' {
+	if hdr != "" && hdr[0] == ':' {
 		return true
 	}
 	switch hdr {
@@ -143,7 +144,7 @@ func newHPACKDecoder() *hpackDecoder {
 		switch f.Name {
 		case "content-type":
 			if !strings.Contains(f.Value, "application/grpc") {
-				d.err = StreamErrorf(codes.FailedPrecondition, "transport: received the unexpected header")
+				d.err = StreamErrorf(codes.FailedPrecondition, "transport: received the unexpected content-type %q", f.Value)
 				return
 			}
 		case "grpc-encoding":
