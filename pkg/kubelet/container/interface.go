@@ -26,13 +26,15 @@ import (
 
 type PodSandboxID string
 
+type RequestToken string
+
 // PodSandboxManager provides basic operations to create/delete and examine the
 // PodSandboxes. These methods should either return an error or block until the
 // operation succeeds.
 type PodSandboxManager interface {
 	// Create creates a sandbox based on the given config, and returns the
 	// the new sandbox.
-	Create(config *PodSandboxConfig) (PodSandboxID, error)
+	Create(idempotencyToken RequestToken, config *PodSandboxConfig) (PodSandboxID, error)
 	// Stop stops the sandbox by its ID. If there are any running
 	// containers in the sandbox, they will be terminated as a side-effect.
 	Stop(id PodSandboxID) error
@@ -45,12 +47,16 @@ type PodSandboxManager interface {
 	Status(id PodSandboxID) (PodSandboxStatus, error)
 }
 
+type PodSandboxMetadata struct {
+	UID       string
+	Name      string
+	Namespace string
+}
+
 // PodSandboxConfig holds all the required and optional fields for creating a
 // sandbox.
 type PodSandboxConfig struct {
-	// Name is the name of the sandbox. The string should conform to
-	// [a-zA-Z0-9_-]+.
-	Name string
+	Metadata PodSandboxMetadata
 	// Hostname is the hostname of the sandbox.
 	Hostname string
 	// DNSOptions sets the DNS options for the sandbox.
@@ -141,8 +147,6 @@ const (
 
 // PodSandboxFilter is used to filter a list of PodSandboxes.
 type PodSandboxFilter struct {
-	// Name of the sandbox.
-	Name *string
 	// ID of the sandbox.
 	ID *PodSandboxID
 	// State of the sandbox.
@@ -212,7 +216,7 @@ type RawContainerID string
 type ContainerRuntime interface {
 	// Create creates a container in the sandbox, and returns the ID
 	// of the created container.
-	Create(config *ContainerConfig, sandboxConfig *PodSandboxConfig, sandboxID PodSandboxID) (RawContainerID, error)
+	Create(idempotencyToken RequestToken, config *ContainerConfig, sandboxConfig *PodSandboxConfig, sandboxID PodSandboxID) (RawContainerID, error)
 	// Start starts a created container.
 	Start(id RawContainerID) error
 	// Stop stops a running container with a grace period (i.e., timeout).
@@ -235,9 +239,6 @@ type ContainerListItem struct {
 	// The ID of the container, used by the container runtime to identify
 	// a container.
 	ID ContainerID
-	// The name of the container, which should be the same as specified by
-	// api.Container.
-	Name string
 	// Reference to the image in use. For most runtimes, this should be an
 	// image ID.
 	ImageRef string
@@ -247,9 +248,14 @@ type ContainerListItem struct {
 	Labels Labels
 }
 
-type ContainerConfig struct {
-	// Name of the container. The string should conform to [a-zA-Z0-9_-]+.
+type ContainerMetadata struct {
 	Name string
+	Hash string
+}
+
+type ContainerConfig struct {
+	// Metadata contains information that might be useful to present to a user
+	Metadata ContainerMetadata
 	// Image to use.
 	Image ImageSpec
 	// Command to execute (i.e., entrypoint for docker)
@@ -300,8 +306,6 @@ type ContainerConfig struct {
 type RawContainerStatus struct {
 	// ID of the container.
 	ID ContainerID
-	// Name of the container.
-	Name string
 	// Status of the container.
 	State ContainerState
 	// Creation time of the container.
@@ -354,8 +358,6 @@ type LinuxContainerResources struct {
 
 // ContainerFilter is used to filter containers.
 type ContainerFilter struct {
-	// Name of the container.
-	Name *string
 	// ID of the container.
 	ID *RawContainerID
 	// State of the contianer.
