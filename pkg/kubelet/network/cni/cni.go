@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 )
@@ -147,10 +148,15 @@ func (plugin *cniNetworkPlugin) SetUpPod(namespace string, name string, id kubec
 		return fmt.Errorf("CNI failed to retrieve network namespace path: %v", err)
 	}
 
-	_, err = plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
-	if err != nil {
-		glog.Errorf("Error while adding to cni lo network: %s", err)
-		return err
+	// Docker sets up the lo interface even when `--net=none` and cni manages the
+	// reset of the networking. This lets the cni plugin work under docker even
+	// if the user doesn't have the lo cni plugin.
+	if plugin.host.GetRuntime().Type() != dockertools.DockerType {
+		_, err = plugin.loNetwork.addToNetwork(name, namespace, id, netnsPath)
+		if err != nil {
+			glog.Errorf("Error while adding to cni lo network: %s", err)
+			return err
+		}
 	}
 
 	_, err = plugin.defaultNetwork.addToNetwork(name, namespace, id, netnsPath)
