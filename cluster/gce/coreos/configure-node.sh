@@ -311,6 +311,7 @@ function load-master-components-images() {
   KUBE_APISERVER_DOCKER_TAG=$(cat ${KUBE_BIN_DIR}/kube-apiserver.docker_tag)
   KUBE_CONTROLLER_MANAGER_DOCKER_TAG=$(cat ${KUBE_BIN_DIR}/kube-controller-manager.docker_tag)
   KUBE_SCHEDULER_DOCKER_TAG=$(cat ${KUBE_BIN_DIR}/kube-scheduler.docker_tag)
+  HYPERKUBE_DOCKER_TAG=$(cat ${KUBE_BIN_DIR}/hyperkube.docker_tag)
 }
 
 ##########

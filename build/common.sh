@@ -894,6 +894,23 @@ function kube::release::create_docker_images_for_server() {
       ) &
     done
 
+    # Hyperkube is a real image, not a wrapped image; create it seperately
+    (
+      local binary_name="hyperkube"
+      kube::log::status "Starting Docker build for image: ${binary_name}"
+      # TODO, this md5sum makes less sense because this binary is not really
+      # used by the image. There's probably a better choice
+      md5_sum=$(kube::release::md5 "${binary_dir}/${binary_name}")
+      local  docker_image_tag="gcr.io/google_containers/hyperkube-${arch}:${md5_sum}"
+      REGISTRY="gcr.io/google_containers" VERSION="${md5_sum}" ARCH="${arch}" make -C cluster/images/hyperkube/ build >/dev/null
+
+      # TODO, duplicate code from above, refactor possible
+      "${DOCKER[@]}" save ${docker_image_tag} > ${binary_dir}/${binary_name}.tar
+      echo $md5_sum > ${binary_dir}/${binary_name}.docker_tag
+      kube::log::status "Deleting docker image ${docker_image_tag}"
+      "${DOCKER[@]}" rmi ${docker_image_tag} 2>/dev/null || true
+    ) &
+
     kube::util::wait-for-jobs || { kube::log::error "previous Docker build failed"; return 1; }
     kube::log::status "Docker builds done"
   )

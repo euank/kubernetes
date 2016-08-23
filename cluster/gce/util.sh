@@ -243,6 +243,7 @@ function set-preferred-region() {
 #   SERVER_BINARY_TAR
 #   SALT_TAR
 #   KUBE_MANIFESTS_TAR
+#   HYERPKUBE_IMAGE_TAR
 #   ZONE
 # Vars set:
 #   SERVER_BINARY_TAR_URL
@@ -277,6 +278,7 @@ function upload-server-tars() {
   if [[ -n "${KUBE_MANIFESTS_TAR:-}" ]]; then
     KUBE_MANIFESTS_TAR_HASH=$(sha1sum-file "${KUBE_MANIFESTS_TAR}")
   fi
+
 
   local server_binary_tar_urls=()
   local salt_tar_urls=()
@@ -689,7 +691,7 @@ function create-network() {
 #   MASTER_ROOT_DISK_SIZE
 function get-master-root-disk-size() {
   if [[ "${NUM_NODES}" -le "1000" ]]; then
-    export MASTER_ROOT_DISK_SIZE="10"
+    export MASTER_ROOT_DISK_SIZE="30"
   else
     export MASTER_ROOT_DISK_SIZE="50"
   fi

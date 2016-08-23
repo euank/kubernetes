@@ -20,6 +20,19 @@ set -o pipefail
 
 MANIFESTS_DIR=/opt/kube-manifests/kubernetes
 
+function load-master-components-images() {
+  echo "Loading images for master components"
+  export RKT_BIN=/opt/rkt/rkt
+  export DOCKER2ACI_BIN=/opt/docker2aci/docker2aci
+  ${SALT_DIR}/install.sh ${KUBE_BIN_TAR}
+  ${SALT_DIR}/salt/kube-master-addons/kube-master-addons.sh
+
+  # Get the image tag
+  HYPERKUBE_DOCKER_TAG=$(cat ${KUBE_BIN_DIR}/hyperkube.docker_tag)
+}
+
+load-kubelet-components-images
+
 echo "Configuring hostname"
 hostnamectl set-hostname $(hostname | cut -f1 -d.)
 

@@ -70,9 +70,7 @@ function convert-rkt-image() {
 }
 
 function load-rkt-images() {
-  convert-rkt-image /srv/salt/kube-bins/kube-apiserver.tar
-  convert-rkt-image /srv/salt/kube-bins/kube-scheduler.tar
-  convert-rkt-image /srv/salt/kube-bins/kube-controller-manager.tar
+  convert-rkt-image /srv/salt/kube-bins/hyperkube.tar
 
   # Currently, we can't run docker image tarballs directly,
   # So we use 'rkt fetch' to load the docker images into rkt image stores.
