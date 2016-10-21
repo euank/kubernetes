@@ -354,14 +354,22 @@ func setIsolators(app *appctypes.App, c *api.Container, ctx *api.SecurityContext
 			if err != nil {
 				return err
 			}
-			isolators = append(isolators, set.AsIsolator())
+			iso, err := set.AsIsolator()
+			if err != nil {
+				return err
+			}
+			isolators = append(isolators, *iso)
 		}
 		if len(dropCaps) > 0 {
 			set, err := appctypes.NewLinuxCapabilitiesRevokeSet(dropCaps...)
 			if err != nil {
 				return err
 			}
-			isolators = append(isolators, set.AsIsolator())
+			iso, err := set.AsIsolator()
+			if err != nil {
+				return err
+			}
+			isolators = append(isolators, *iso)
 		}
 	}
 

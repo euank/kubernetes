@@ -30,6 +30,7 @@ import (
 
 	"github.com/golang/glog"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
+	"github.com/kubernetes-incubator/rktlet/rktlet"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -60,6 +61,7 @@ import (
 	proberesults "k8s.io/kubernetes/pkg/kubelet/prober/results"
 	"k8s.io/kubernetes/pkg/kubelet/remote"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim"
 	"k8s.io/kubernetes/pkg/kubelet/server"
 	"k8s.io/kubernetes/pkg/kubelet/server/stats"
 	"k8s.io/kubernetes/pkg/kubelet/status"
@@ -584,35 +586,82 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 			)
 		}
 	case "rkt":
-		// TODO: Include hairpin mode settings in rkt?
-		conf := &rkt.Config{
-			Path:            kubeCfg.RktPath,
-			Stage1Image:     kubeCfg.RktStage1Image,
-			InsecureOptions: "image,ondisk",
+		switch kubeCfg.ExperimentalRuntimeIntegrationType {
+		case "cri":
+			glog.Infof("using the experimental rkt CRI shim integration")
+			rktletRuntime, err := rktlet.New()
+			if err != nil {
+				return nil, err
+			}
+
+			// Start the in process rktlet grpc server.
+			server := rktshim.NewRktletServer("", rktletRuntime)
+			err = server.Start()
+			if err != nil {
+				return nil, err
+			}
+			// Start the remote kuberuntime manager.
+			runtimeService, err := remote.NewRemoteRuntimeService(server.Endpoint(), kubeCfg.RuntimeRequestTimeout.Duration)
+			if err != nil {
+				return nil, err
+			}
+			imageService, err := remote.NewRemoteImageService(server.Endpoint(), kubeCfg.RuntimeRequestTimeout.Duration)
+			if err != nil {
+				return nil, err
+			}
+			klet.containerRuntime, err = kuberuntime.NewKubeGenericRuntimeManager(
+				kubecontainer.FilterEventRecorder(kubeDeps.Recorder),
+				klet.livenessManager,
+				containerRefManager,
+				machineInfo,
+				klet.podManager,
+				kubeDeps.OSInterface,
+				klet.networkPlugin,
+				klet,
+				klet.httpClient,
+				imageBackOff,
+				kubeCfg.SerializeImagePulls,
+				float32(kubeCfg.RegistryPullQPS),
+				int(kubeCfg.RegistryBurst),
+				klet.cpuCFSQuota,
+				kuberuntime.NewInstrumentedRuntimeService(runtimeService),
+				kuberuntime.NewInstrumentedImageManagerService(imageService),
+			)
+			if err != nil {
+				return nil, err
+			}
+
+		default:
+			// TODO: Include hairpin mode settings in rkt?
+			conf := &rkt.Config{
+				Path:            kubeCfg.RktPath,
+				Stage1Image:     kubeCfg.RktStage1Image,
+				InsecureOptions: "image,ondisk",
+			}
+			rktRuntime, err := rkt.New(
+				kubeCfg.RktAPIEndpoint,
+				conf,
+				klet,
+				kubeDeps.Recorder,
+				containerRefManager,
+				klet.podManager,
+				klet.livenessManager,
+				klet.httpClient,
+				klet.networkPlugin,
+				klet.hairpinMode == componentconfig.HairpinVeth,
+				utilexec.New(),
+				kubecontainer.RealOS{},
+				imageBackOff,
+				kubeCfg.SerializeImagePulls,
+				float32(kubeCfg.RegistryPullQPS),
+				int(kubeCfg.RegistryBurst),
+				kubeCfg.RuntimeRequestTimeout.Duration,
+			)
+			if err != nil {
+				return nil, err
+			}
+			klet.containerRuntime = rktRuntime
 		}
-		rktRuntime, err := rkt.New(
-			kubeCfg.RktAPIEndpoint,
-			conf,
-			klet,
-			kubeDeps.Recorder,
-			containerRefManager,
-			klet.podManager,
-			klet.livenessManager,
-			klet.httpClient,
-			klet.networkPlugin,
-			klet.hairpinMode == componentconfig.HairpinVeth,
-			utilexec.New(),
-			kubecontainer.RealOS{},
-			imageBackOff,
-			kubeCfg.SerializeImagePulls,
-			float32(kubeCfg.RegistryPullQPS),
-			int(kubeCfg.RegistryBurst),
-			kubeCfg.RuntimeRequestTimeout.Duration,
-		)
-		if err != nil {
-			return nil, err
-		}
-		klet.containerRuntime = rktRuntime
 	case "remote":
 		remoteRuntimeService, err := remote.NewRemoteRuntimeService(kubeCfg.RemoteRuntimeEndpoint, kubeCfg.RuntimeRequestTimeout.Duration)
 		if err != nil {
