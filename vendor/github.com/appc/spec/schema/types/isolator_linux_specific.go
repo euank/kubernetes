@@ -17,11 +17,18 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"unicode"
 )
 
 const (
 	LinuxCapabilitiesRetainSetName = "os/linux/capabilities-retain-set"
 	LinuxCapabilitiesRevokeSetName = "os/linux/capabilities-remove-set"
+	LinuxNoNewPrivilegesName       = "os/linux/no-new-privileges"
+	LinuxSeccompRemoveSetName      = "os/linux/seccomp-remove-set"
+	LinuxSeccompRetainSetName      = "os/linux/seccomp-retain-set"
+	LinuxOOMScoreAdjName           = "os/linux/oom-score-adj"
+	LinuxCPUSharesName             = "os/linux/cpu-shares"
 )
 
 var LinuxIsolatorNames = make(map[ACIdentifier]struct{})
@@ -30,10 +37,46 @@ func init() {
 	for name, con := range map[ACIdentifier]IsolatorValueConstructor{
 		LinuxCapabilitiesRevokeSetName: func() IsolatorValue { return &LinuxCapabilitiesRevokeSet{} },
 		LinuxCapabilitiesRetainSetName: func() IsolatorValue { return &LinuxCapabilitiesRetainSet{} },
+		LinuxNoNewPrivilegesName:       func() IsolatorValue { v := LinuxNoNewPrivileges(false); return &v },
+		LinuxOOMScoreAdjName:           func() IsolatorValue { v := LinuxOOMScoreAdj(0); return &v },
+		LinuxCPUSharesName:             func() IsolatorValue { v := LinuxCPUShares(1024); return &v },
+		LinuxSeccompRemoveSetName:      func() IsolatorValue { return &LinuxSeccompRemoveSet{} },
+		LinuxSeccompRetainSetName:      func() IsolatorValue { return &LinuxSeccompRetainSet{} },
 	} {
 		AddIsolatorName(name, LinuxIsolatorNames)
 		AddIsolatorValueConstructor(name, con)
 	}
+}
+
+type LinuxNoNewPrivileges bool
+
+func (l LinuxNoNewPrivileges) AssertValid() error {
+	return nil
+}
+
+// TODO(lucab): both need to be clarified in spec,
+// see https://github.com/appc/spec/issues/625
+func (l LinuxNoNewPrivileges) multipleAllowed() bool {
+	return true
+}
+func (l LinuxNoNewPrivileges) Conflicts() []ACIdentifier {
+	return nil
+}
+
+func (l *LinuxNoNewPrivileges) UnmarshalJSON(b []byte) error {
+	var v bool
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return err
+	}
+
+	*l = LinuxNoNewPrivileges(v)
+
+	return nil
+}
+
+type AsIsolator interface {
+	AsIsolator() (*Isolator, error)
 }
 
 type LinuxCapabilitiesSet interface {
@@ -55,6 +98,15 @@ func (l linuxCapabilitiesSetBase) AssertValid() error {
 	if len(l.val.Set) == 0 {
 		return errors.New("set must be non-empty")
 	}
+	return nil
+}
+
+// TODO(lucab): both need to be clarified in spec,
+// see https://github.com/appc/spec/issues/625
+func (l linuxCapabilitiesSetBase) multipleAllowed() bool {
+	return true
+}
+func (l linuxCapabilitiesSetBase) Conflicts() []ACIdentifier {
 	return nil
 }
 
@@ -95,17 +147,17 @@ func NewLinuxCapabilitiesRetainSet(caps ...string) (*LinuxCapabilitiesRetainSet,
 	return &l, nil
 }
 
-func (l LinuxCapabilitiesRetainSet) AsIsolator() Isolator {
+func (l LinuxCapabilitiesRetainSet) AsIsolator() (*Isolator, error) {
 	b, err := json.Marshal(l.linuxCapabilitiesSetBase.val)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	rm := json.RawMessage(b)
-	return Isolator{
+	return &Isolator{
 		Name:     LinuxCapabilitiesRetainSetName,
 		ValueRaw: &rm,
 		value:    &l,
-	}
+	}, nil
 }
 
 type LinuxCapabilitiesRevokeSet struct {
@@ -129,14 +181,251 @@ func NewLinuxCapabilitiesRevokeSet(caps ...string) (*LinuxCapabilitiesRevokeSet,
 	return &l, nil
 }
 
-func (l LinuxCapabilitiesRevokeSet) AsIsolator() Isolator {
+func (l LinuxCapabilitiesRevokeSet) AsIsolator() (*Isolator, error) {
 	b, err := json.Marshal(l.linuxCapabilitiesSetBase.val)
+	if err != nil {
+		return nil, err
+	}
+	rm := json.RawMessage(b)
+	return &Isolator{
+		Name:     LinuxCapabilitiesRevokeSetName,
+		ValueRaw: &rm,
+		value:    &l,
+	}, nil
+}
+
+type LinuxSeccompSet interface {
+	Set() []LinuxSeccompEntry
+	Errno() LinuxSeccompErrno
+	AssertValid() error
+}
+
+type LinuxSeccompEntry string
+type LinuxSeccompErrno string
+
+type linuxSeccompValue struct {
+	Set   []LinuxSeccompEntry `json:"set"`
+	Errno LinuxSeccompErrno   `json:"errno"`
+}
+
+type linuxSeccompBase struct {
+	val linuxSeccompValue
+}
+
+func (l linuxSeccompBase) multipleAllowed() bool {
+	return false
+}
+
+func (l linuxSeccompBase) AssertValid() error {
+	if len(l.val.Set) == 0 {
+		return errors.New("set must be non-empty")
+	}
+	if l.val.Errno == "" {
+		return nil
+	}
+	for _, c := range l.val.Errno {
+		if !unicode.IsUpper(c) {
+			return errors.New("errno must be an upper case string")
+		}
+	}
+	return nil
+}
+
+func (l *linuxSeccompBase) UnmarshalJSON(b []byte) error {
+	var v linuxSeccompValue
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return err
+	}
+	l.val = v
+	return nil
+}
+
+func (l linuxSeccompBase) Set() []LinuxSeccompEntry {
+	return l.val.Set
+}
+
+func (l linuxSeccompBase) Errno() LinuxSeccompErrno {
+	return l.val.Errno
+}
+
+type LinuxSeccompRetainSet struct {
+	linuxSeccompBase
+}
+
+func (l LinuxSeccompRetainSet) Conflicts() []ACIdentifier {
+	return []ACIdentifier{LinuxSeccompRemoveSetName}
+}
+
+func NewLinuxSeccompRetainSet(errno string, syscall ...string) (*LinuxSeccompRetainSet, error) {
+	l := LinuxSeccompRetainSet{
+		linuxSeccompBase{
+			linuxSeccompValue{
+				make([]LinuxSeccompEntry, len(syscall)),
+				LinuxSeccompErrno(errno),
+			},
+		},
+	}
+	for i, c := range syscall {
+		l.linuxSeccompBase.val.Set[i] = LinuxSeccompEntry(c)
+	}
+	if err := l.AssertValid(); err != nil {
+		return nil, err
+	}
+	return &l, nil
+}
+
+func (l LinuxSeccompRetainSet) AsIsolator() (*Isolator, error) {
+	b, err := json.Marshal(l.linuxSeccompBase.val)
+	if err != nil {
+		return nil, err
+	}
+	rm := json.RawMessage(b)
+	return &Isolator{
+		Name:     LinuxSeccompRetainSetName,
+		ValueRaw: &rm,
+		value:    &l,
+	}, nil
+}
+
+type LinuxSeccompRemoveSet struct {
+	linuxSeccompBase
+}
+
+func (l LinuxSeccompRemoveSet) Conflicts() []ACIdentifier {
+	return []ACIdentifier{LinuxSeccompRetainSetName}
+}
+
+func NewLinuxSeccompRemoveSet(errno string, syscall ...string) (*LinuxSeccompRemoveSet, error) {
+	l := LinuxSeccompRemoveSet{
+		linuxSeccompBase{
+			linuxSeccompValue{
+				make([]LinuxSeccompEntry, len(syscall)),
+				LinuxSeccompErrno(errno),
+			},
+		},
+	}
+	for i, c := range syscall {
+		l.linuxSeccompBase.val.Set[i] = LinuxSeccompEntry(c)
+	}
+	if err := l.AssertValid(); err != nil {
+		return nil, err
+	}
+	return &l, nil
+}
+
+func (l LinuxSeccompRemoveSet) AsIsolator() (*Isolator, error) {
+	b, err := json.Marshal(l.linuxSeccompBase.val)
+	if err != nil {
+		return nil, err
+	}
+	rm := json.RawMessage(b)
+	return &Isolator{
+		Name:     LinuxSeccompRemoveSetName,
+		ValueRaw: &rm,
+		value:    &l,
+	}, nil
+}
+
+// LinuxCPUShares assigns the CPU time share weight to the processes executed.
+// See https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#CPUShares=weight,
+// https://www.kernel.org/doc/Documentation/scheduler/sched-design-CFS.txt
+type LinuxCPUShares int
+
+func NewLinuxCPUShares(val int) (*LinuxCPUShares, error) {
+	l := LinuxCPUShares(val)
+	if err := l.AssertValid(); err != nil {
+		return nil, err
+	}
+
+	return &l, nil
+}
+
+func (l LinuxCPUShares) AssertValid() error {
+	if l < 2 || l > 262144 {
+		return fmt.Errorf("%s must be between 2 and 262144, got %d", LinuxCPUSharesName, l)
+	}
+	return nil
+}
+
+func (l LinuxCPUShares) multipleAllowed() bool {
+	return false
+}
+
+func (l LinuxCPUShares) Conflicts() []ACIdentifier {
+	return nil
+}
+
+func (l *LinuxCPUShares) UnmarshalJSON(b []byte) error {
+	var v int
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return err
+	}
+
+	*l = LinuxCPUShares(v)
+	return nil
+}
+
+func (l LinuxCPUShares) AsIsolator() Isolator {
+	b, err := json.Marshal(l)
 	if err != nil {
 		panic(err)
 	}
 	rm := json.RawMessage(b)
 	return Isolator{
-		Name:     LinuxCapabilitiesRevokeSetName,
+		Name:     LinuxCPUSharesName,
+		ValueRaw: &rm,
+		value:    &l,
+	}
+}
+
+// LinuxOOMScoreAdj is equivalent to /proc/[pid]/oom_score_adj
+type LinuxOOMScoreAdj int // -1000 to 1000
+
+func NewLinuxOOMScoreAdj(val int) (*LinuxOOMScoreAdj, error) {
+	l := LinuxOOMScoreAdj(val)
+	if err := l.AssertValid(); err != nil {
+		return nil, err
+	}
+
+	return &l, nil
+}
+
+func (l LinuxOOMScoreAdj) AssertValid() error {
+	if l < -1000 || l > 1000 {
+		return fmt.Errorf("%s must be between -1000 and 1000, got %d", LinuxOOMScoreAdjName, l)
+	}
+	return nil
+}
+
+func (l LinuxOOMScoreAdj) multipleAllowed() bool {
+	return false
+}
+
+func (l LinuxOOMScoreAdj) Conflicts() []ACIdentifier {
+	return nil
+}
+
+func (l *LinuxOOMScoreAdj) UnmarshalJSON(b []byte) error {
+	var v int
+	err := json.Unmarshal(b, &v)
+	if err != nil {
+		return err
+	}
+
+	*l = LinuxOOMScoreAdj(v)
+	return nil
+}
+
+func (l LinuxOOMScoreAdj) AsIsolator() Isolator {
+	b, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+	rm := json.RawMessage(b)
+	return Isolator{
+		Name:     LinuxOOMScoreAdjName,
 		ValueRaw: &rm,
 		value:    &l,
 	}

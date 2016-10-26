@@ -94,19 +94,34 @@
 			"Rev": "c0ef4539dfab4d21c8ef20ba2924f9fc6f186d35"
 		},
 		{
+			"ImportPath": "github.com/appc/spec/aci",
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
+		},
+		{
+			"ImportPath": "github.com/appc/spec/pkg/device",
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
+		},
+		{
+			"ImportPath": "github.com/appc/spec/pkg/tarheader",
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
+		},
+		{
 			"ImportPath": "github.com/appc/spec/schema",
-			"Comment": "v0.8.1-6-gab50d12",
-			"Rev": "ab50d12e88f57788bf84b83fef2be236eb1fcc0b"
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/schema/common",
-			"Comment": "v0.8.1-6-gab50d12",
-			"Rev": "ab50d12e88f57788bf84b83fef2be236eb1fcc0b"
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
 		},
 		{
 			"ImportPath": "github.com/appc/spec/schema/types",
-			"Comment": "v0.8.1-6-gab50d12",
-			"Rev": "ab50d12e88f57788bf84b83fef2be236eb1fcc0b"
+			"Comment": "v0.8.8-7-g1b1431b",
+			"Rev": "1b1431be64d4bf37c3fd365c42323d4588532247"
 		},
 		{
 			"ImportPath": "github.com/asaskevich/govalidator",
@@ -697,8 +712,68 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/rkt/api/v1alpha",
-			"Comment": "v1.11.0-59-ga83419b",
-			"Rev": "a83419be28ac626876f94a28b4df2dbc9eac7448"
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/common",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/lib",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/networking/netinfo",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/fileutil",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/group",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/label",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/lock",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/passwd",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/pod",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/selinux",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/sys",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
+		},
+		{
+			"ImportPath": "github.com/coreos/rkt/pkg/user",
+			"Comment": "v1.17.0-128-g0f62a3b",
+			"Rev": "0f62a3bf9174738e0d2f2b3632ecbe65b6ce2018"
 		},
 		{
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
@@ -729,6 +804,11 @@
 			"Rev": "cd27f179f2c10c5d300e6d09025b538c475b0d51"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/daemon/caps",
+			"Comment": "v1.11.2",
+			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/jsonlog",
 			"Comment": "v1.11.2",
 			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
@@ -749,7 +829,17 @@
 			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
 		},
 		{
+			"ImportPath": "github.com/docker/docker/pkg/random",
+			"Comment": "v1.11.2",
+			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
+		},
+		{
 			"ImportPath": "github.com/docker/docker/pkg/stdcopy",
+			"Comment": "v1.11.2",
+			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/stringutils",
 			"Comment": "v1.11.2",
 			"Rev": "b9f10c951893f9a00865890a5232e85d770c1087"
 		},
@@ -1364,6 +1454,10 @@
 			"Rev": "f52d055dc48aec25854ed7d31862f78913cf17d1"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/errwrap",
+			"Rev": "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
@@ -1490,6 +1584,22 @@
 			"ImportPath": "github.com/kr/pty",
 			"Comment": "release.r56-29-gf7ee69f",
 			"Rev": "f7ee69f31298ecbe5d2b349c711e2547a617d398"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/rktlet/rktlet",
+			"Rev": "1a3a3e8a382941b0705043416e6888f43c4ce11d"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/rktlet/rktlet/cli",
+			"Rev": "1a3a3e8a382941b0705043416e6888f43c4ce11d"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/rktlet/rktlet/image",
+			"Rev": "1a3a3e8a382941b0705043416e6888f43c4ce11d"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/rktlet/rktlet/runtime",
+			"Rev": "1a3a3e8a382941b0705043416e6888f43c4ce11d"
 		},
 		{
 			"ImportPath": "github.com/lpabon/godbc",
