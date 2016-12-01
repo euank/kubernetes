@@ -123,7 +123,6 @@ function verify-prereqs() {
 function ensure-temp-dir() {
   if [[ -z ${KUBE_TEMP-} ]]; then
     KUBE_TEMP=$(mktemp -d -t kubernetes.XXXXXX)
-    trap 'rm -rf "${KUBE_TEMP}"' EXIT
   fi
 }
 
@@ -1198,6 +1197,19 @@ function check-cluster() {
     fi
   fi
 
+  export KUBE_CERT="${CERT_DIR}/pki/issued/kubecfg.crt"
+  export KUBE_KEY="${CERT_DIR}/pki/private/kubecfg.key"
+  export CA_CERT="${CERT_DIR}/pki/ca.crt"
+  export CONTEXT="${PROJECT}_${INSTANCE_PREFIX}"
+  (
+   umask 077
+
+   # Update the user's kubeconfig to include credentials for this apiserver.
+   create-kubeconfig
+
+   create-kubeconfig-for-federation
+  )
+
   local start_time=$(date +%s)
   until curl --cacert "${CERT_DIR}/pki/ca.crt" \
           -H "Authorization: Bearer ${KUBE_BEARER_TOKEN}" \
@@ -1215,18 +1227,6 @@ function check-cluster() {
 
   echo "Kubernetes cluster created."
 
-  export KUBE_CERT="${CERT_DIR}/pki/issued/kubecfg.crt"
-  export KUBE_KEY="${CERT_DIR}/pki/private/kubecfg.key"
-  export CA_CERT="${CERT_DIR}/pki/ca.crt"
-  export CONTEXT="${PROJECT}_${INSTANCE_PREFIX}"
-  (
-   umask 077
-
-   # Update the user's kubeconfig to include credentials for this apiserver.
-   create-kubeconfig
-
-   create-kubeconfig-for-federation
-  )
 
   # ensures KUBECONFIG is set
   get-kubeconfig-basicauth

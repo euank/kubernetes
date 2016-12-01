@@ -367,12 +367,12 @@ function try-load-docker-image {
   local -r max_attempts=5
   local -i attempt_num=1
 
-  if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]]; then
+  if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]] || [[ "${CONTAINER_RUNTIME:-}" == "rktlet" ]]; then
     for attempt_num in $(seq 1 "${max_attempts}"); do
       local aci_tmpdir="$(mktemp -t -d docker2aci.XXXXX)"
       (cd "${aci_tmpdir}"; timeout 40 "${DOCKER2ACI_BIN}" "$1")
       local aci_success=$?
-      timeout 40 "${RKT_BIN}" fetch --insecure-options=image "${aci_tmpdir}"/*.aci
+      timeout 40 "${RKT_BIN}" fetch --dir="${RKT_DATA_DIR}" --insecure-options=image "${aci_tmpdir}"/*.aci
       local fetch_success=$?
       rm -f "${aci_tmpdir}"/*.aci
       rmdir "${aci_tmpdir}"
@@ -425,7 +425,9 @@ function start-kubelet {
   local flags="${KUBELET_TEST_LOG_LEVEL:-"--v=2"} ${KUBELET_TEST_ARGS:-}"
   flags+=" --allow-privileged=true"
   flags+=" --babysit-daemons=true"
-  flags+=" --cgroup-root=/"
+  if [[ "${CONTAINER_RUNTIME:-}" != "rktlet" ]]; then
+    flags+=" --cgroup-root=/"
+  fi
   flags+=" --cloud-provider=gce"
   flags+=" --cluster-dns=${DNS_SERVER_IP}"
   flags+=" --cluster-domain=${DNS_DOMAIN}"
@@ -482,10 +484,35 @@ function start-kubelet {
   if [[ -n "${FEATURE_GATES:-}" ]]; then
     flags+=" --feature-gates=${FEATURE_GATES}"
   fi
-  if [[ -n "${CONTAINER_RUNTIME:-}" ]]; then
+  if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]]; then
     flags+=" --container-runtime=${CONTAINER_RUNTIME}"
     flags+=" --rkt-path=${KUBE_HOME}/bin/rkt"
     flags+=" --rkt-stage1-image=${RKT_STAGE1_IMAGE}"
+  fi
+  if [[ "${CONTAINER_RUNTIME:-}" == "rktlet" ]]; then
+    flags+=" --container-runtime=remote"
+    flags+=" --experimental-cri=true"
+    flags+=" --image-service-endpoint=/var/run/rktlet.sock"
+    flags+=" --container-runtime-endpoint=/var/run/rktlet.sock"
+    flags+=" --rkt-path=${KUBE_HOME}/bin/rkt"
+    flags+=" --experimental-cgroups-per-qos=false"
+
+    cat <<EOF >/etc/systemd/system/rktlet.service
+[Unit]
+Description=Kubernetes rktlet
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+ExecStart=${KUBE_HOME}/bin/rktlet --rkt-path=${KUBE_HOME}/bin/rkt --v=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl enable rktlet.service
+    systemctl start rktlet.service
   fi
 
   local -r kubelet_env_file="/etc/kubelet-env"
@@ -553,7 +580,7 @@ function start-kube-proxy {
   if [[ -n "${CLUSTER_IP_RANGE:-}" ]]; then
     sed -i -e "s@{{cluster_cidr}}@--cluster-cidr=${CLUSTER_IP_RANGE}@g" ${src_file}
   fi
-  if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]]; then
+  if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]] || [[ "${CONTAINER_RUNTIME:-}" == "rktlet" ]]; then
     # Work arounds for https://github.com/coreos/rkt/issues/3245 and https://github.com/coreos/rkt/issues/3264
     # This is an incredibly hacky workaround. It's fragile too. If the kube-proxy command changes too much, this breaks
     # TODO, this could be done much better in many other places, such as an
@@ -1118,7 +1145,14 @@ function start-rescheduler {
 # TODO(euank): There should be a toggle to use the distro-provided rkt binary
 # Sets the following variables:
 #   RKT_BIN: the path to the rkt binary
+#   RKT_DATA_DIR: the path to the rkt data directory that will be used by k8s
 function setup-rkt {
+    if [[ "${CONTAINER_RUNTIME:-}" == "rktlet" ]]; then
+      RKT_DATA_DIR="/var/lib/rktlet/data"
+    else
+      RKT_DATA_DIR="/var/lib/rkt"
+    fi
+
     local rkt_bin="${KUBE_HOME}/bin/rkt"
     if [[ -x "${rkt_bin}" ]]; then
       # idempotency, skip downloading this time
@@ -1141,7 +1175,7 @@ function setup-rkt {
     fi
     RKT_BIN="${rkt_bin}"
     # Cache rkt stage1 images for speed
-    "${RKT_BIN}" fetch --insecure-options=image "${rkt_tmpdir}"/*.aci
+    "${RKT_BIN}" fetch --dir="${RKT_DATA_DIR}" --insecure-options=image "${rkt_tmpdir}"/*.aci
     rm -rf "${rkt_tmpdir}"
 
     cat > /etc/systemd/system/rkt-api.service <<EOF
@@ -1151,7 +1185,7 @@ Documentation=http://github.com/coreos/rkt
 After=network.target
 
 [Service]
-ExecStart=${RKT_BIN} api-service --listen=127.0.0.1:15441
+ExecStart=${RKT_BIN} --dir="${RKT_DATA_DIR}" api-service --listen=127.0.0.1:15441
 
 [Install]
 WantedBy=multi-user.target
@@ -1213,7 +1247,7 @@ else
   create-kubeproxy-kubeconfig
 fi
 
-if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]]; then
+if [[ "${CONTAINER_RUNTIME:-}" == "rkt" ]] || [[ "${CONTAINER_RUNTIME:-}" == "rktlet" ]]; then
   systemctl stop docker
   systemctl disable docker
   setup-rkt

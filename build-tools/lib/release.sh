@@ -177,6 +177,10 @@ function kube::release::package_server_tarballs() {
     cp "${client_bins[@]/#/${LOCAL_OUTPUT_BINPATH}/${platform}/}" \
       "${release_stage}/server/bin/"
 
+    if [[ -n "${RKTLET_PATH:-}" ]]; then
+      cp "${RKTLET_PATH}" "${release_stage}/server/bin"
+    fi
+
     cp "${KUBE_ROOT}/Godeps/LICENSES" "${release_stage}/"
 
     cp "${RELEASE_DIR}/kubernetes-src.tar.gz" "${release_stage}/"

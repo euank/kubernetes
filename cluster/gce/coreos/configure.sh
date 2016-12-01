@@ -107,6 +107,9 @@ function install-kube-binary-config {
   local -r kube_bin="${KUBE_HOME}/bin"
   mv "${src_dir}/kubelet" "${kube_bin}"
   mv "${src_dir}/kubectl" "${kube_bin}"
+  if [[ -f "${src_dir}/rktlet" ]]; then
+    mv "${src_dir}/rktlet" "${kube_bin}"
+  fi
 
   if [[ "${NETWORK_PROVIDER:-}" == "kubenet" ]] || \
      [[ "${NETWORK_PROVIDER:-}" == "cni" ]]; then
