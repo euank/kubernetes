@@ -467,3 +467,9 @@ else
 help:
 	hack/make-rules/make-help.sh
 endif
+
+
+.PHONY: package_rktlet
+package_rktlet:
+	cp "$(RKTLET_PATH)" ./_output/release-stage/server/linux-amd64/kubernetes/server/bin/rktlet
+	./build-tools/package-tarballs.sh
