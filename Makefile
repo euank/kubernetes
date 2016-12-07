@@ -500,3 +500,12 @@ else
 bazel-test:
 	bazel test  --test_output=errors //cmd/... //pkg/... //federation/... //plugin/... //build/... //third_party/... //hack/...
 endif
+
+.PHONY: dockerized
+dockerized:
+	./build/build-dockerized.sh
+
+.PHONY: package_rktlet
+package_rktlet:
+	cp "$(RKTLET_PATH)" ./_output/release-stage/server/linux-amd64/kubernetes/server/bin/rktlet
+	KUBE_FASTBUILD=true ./build/package-tarballs.sh
