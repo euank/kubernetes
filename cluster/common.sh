@@ -817,6 +817,7 @@ EOF
     cat >>$file <<EOF
 KUBERNETES_CONTAINER_RUNTIME: $(yaml-quote ${CONTAINER_RUNTIME:-rkt})
 RKT_VERSION: $(yaml-quote ${RKT_VERSION:-})
+RKT_DOWNLOAD_URL: $(yaml-quote ${RKT_DOWNLOAD_URL:-})
 RKT_PATH: $(yaml-quote ${RKT_PATH:-})
 RKT_STAGE1_IMAGE: $(yaml-quote ${RKT_STAGE1_IMAGE:-})
 EOF

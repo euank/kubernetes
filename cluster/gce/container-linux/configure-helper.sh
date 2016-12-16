@@ -1203,9 +1203,12 @@ function setup-rkt {
     mkdir -p /etc/rkt "${KUBE_HOME}/download/"
     local rkt_tar="${KUBE_HOME}/download/rkt.tar.gz"
     local rkt_tmpdir=$(mktemp -d "${KUBE_HOME}/rkt_download.XXXXX")
+    local default_rkt_url="https://github.com/coreos/rkt/releases/download/v${RKT_VERSION}/rkt-v${RKT_VERSION}.tar.gz"
+    local rkt_url="${RKT_DOWNLOAD_URL:-${default_rkt_url}}"
+
     curl --retry 5 --retry-delay 3 --fail --silent --show-error \
       --location --create-dirs --output "${rkt_tar}" \
-      https://github.com/coreos/rkt/releases/download/v${RKT_VERSION}/rkt-v${RKT_VERSION}.tar.gz
+      "${rkt_url}"
     tar --strip-components=1 -xf "${rkt_tar}" -C "${rkt_tmpdir}" --overwrite
     mv "${rkt_tmpdir}/rkt" "${rkt_bin}"
     if [[ ! -x "${rkt_bin}" ]]; then
