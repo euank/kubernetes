@@ -22,7 +22,7 @@ import (
 
 	rktlib "github.com/coreos/rkt/lib"
 	"github.com/coreos/rkt/networking/netinfo"
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli/mocks"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli/mocks"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"

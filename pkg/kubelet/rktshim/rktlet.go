@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli"
-	"github.com/kubernetes-incubator/rktlet/rktlet/image"
-	"github.com/kubernetes-incubator/rktlet/rktlet/runtime"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/image"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/runtime"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/util/exec"
 )

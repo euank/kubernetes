@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kr/pty"
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 
 	"golang.org/x/net/context"

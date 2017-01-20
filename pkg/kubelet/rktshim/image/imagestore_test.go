@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli/mocks"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/net/context"

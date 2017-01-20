@@ -23,7 +23,7 @@ import (
 
 	"github.com/coreos/rkt/lib"
 	"github.com/golang/glog"
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli"
 	"golang.org/x/net/context"
 
 	runtimeApi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"

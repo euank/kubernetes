@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/kubernetes-incubator/rktlet/rktlet/cli"
-	"github.com/kubernetes-incubator/rktlet/rktlet/util"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/cli"
+	"k8s.io/kubernetes/pkg/kubelet/rktshim/util"
 
 	appcschema "github.com/appc/spec/schema"
 	rktlib "github.com/coreos/rkt/lib"
